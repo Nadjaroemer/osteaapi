@@ -22,9 +22,42 @@ module.exports = function(app) {
 
     //get all cheeses
    app.get("/api/v1/cheeses", async function(request, response, next) {
-       try {
-           var result = await Cheese.find();
-           response.json(result); 
+        var limit = parseInt(request.query.limit) || 5;
+        var offset = parseInt(request.query.offset) || 0;
+
+       try  {
+            var result = await Cheese.find().limit(limit).skip(offset);
+            var count = (await Cheese.find()).length;
+
+       //["limit = 5", "offset=2"].join("&")
+
+            var qLimit = request.query.limit;
+            var qOffset = request.query.offset;
+
+            var queryStringNext = [];
+            var queryStringPrevious = [];
+
+            if(qLimit){
+                queryStringNext.push("limit=" + qLimit);
+                queryStringPrevious.push("limit=" + qLimit)
+            }
+
+            if(qOffset) {
+                queryStringNext.push("offset=" + (parseInt(qOffset) + limit))
+                queryStringPrevious.push("offset=" + (parseInt(qLimit) - limit))
+            }
+            
+            var baseUrl = `${request.protocol}://${request.hostname}${request.hostname == "localhost" ? ":" + process.env.PORT : " " }${request._parsedUrl.pathname}`;
+
+            var output = {
+                count,
+                next: (offset + limit < count) ? `${baseUrl}?${queryStringNext.join("&")}` : null,
+                previous: offset > 0 ? `${baseUrl}?${queryStringPrevious.join("&")}` : null,
+                url: `${baseUrl}` + (offset ? "?offset=" + offset : ""),
+                results: result
+            }
+
+            response.json(output);  
        } catch (error) {
            return next(error); 
        }
