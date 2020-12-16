@@ -29,8 +29,6 @@ module.exports = function(app) {
             var result = await Cheese.find().limit(limit).skip(offset);
             var count = (await Cheese.find()).length;
 
-       //["limit = 5", "offset=2"].join("&")
-
             var qLimit = request.query.limit;
             var qOffset = request.query.offset;
 
@@ -49,9 +47,11 @@ module.exports = function(app) {
             
             var baseUrl = `${request.protocol}://${request.hostname}${request.hostname == "localhost" ? ":" + process.env.PORT : " " }${request._parsedUrl.pathname}`;
 
+            var isNotLastPage = (offset + limit < count);
+
             var output = {
                 count,
-                next: (offset + limit < count) ? `${baseUrl}?${queryStringNext.join("&")}` : null,
+                next: isNotLastPage ? `${baseUrl}?${queryStringNext.join("&")}` : null,
                 previous: offset > 0 ? `${baseUrl}?${queryStringPrevious.join("&")}` : null,
                 url: `${baseUrl}` + (offset ? "?offset=" + offset : ""),
                 results: result
